@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:jdbc="http://www.springframework.org/schema/jdbc" xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+
+	xsi:schemaLocation="
+       http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context
+       http://www.springframework.org/schema/context/spring-context.xsd
+       http://www.springframework.org/schema/jdbc 
+       http://www.springframework.org/schema/jdbc/spring-jdbc.xsd
+               http://www.springframework.org/schema/aop
+        http://www.springframework.org/schema/aop/spring-aop.xsd
+                http://www.springframework.org/schema/tx
+        http://www.springframework.org/schema/tx/spring-tx.xsd
+       ">
+	<!-- spring 框架所创建的实现类是代理类，和项目中实现类继承相同接口，可以在spring-mvc中进行扫描创建， spring-mvc(bean容器)为spring容器的子容器；父容器实例子容器可创建，子容器不可创建父容器实例(子容器实例相对私有) 
+		；2.1可以不实例其接口，直接实例实现类；2.2 spring-mvc创建实例，但可能无法添加事务 -->
+	<context:property-placeholder
+		location="classpath:dbConfig.properties,classpath:MyWs.properties" />
+
+	<context:component-scan base-package="com.atguigu.service"
+		use-default-filters="false">
+		<context:include-filter type="annotation"
+			expression="org.springframework.stereotype.Service" />
+	</context:component-scan>
+
+
+	<bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource">
+		<property name="driverClassName" value="${driverClassName}" />
+		<property name="url" value="${url}" />
+		<property name="username" value="${jdbc.username}" />
+		<property name="password" value="${jdbc.password}" />
+	</bean>
+
+	<bean id="sqlSessionFactoryBean" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="dataSource" />
+		<property name="configLocation" value="classpath:mybatis-config.xml" />
+	</bean>
+
+	<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="basePackage" value="com.atguigu.mapper" />
+		<property name="sqlSessionFactoryBeanName" value="sqlSessionFactoryBean" />
+	</bean>
+	<bean id="userLoginServer" class="com.atguigu.util.MyWsFactoryBean">
+		<property name="url" value="${soap_user}" />
+		<property name="t" value="com.atguigu.server.UserLoginServer" />
+	</bean>
+
+	<bean id="ServerInf" class="com.atguigu.util.MyWsFactoryBean">
+		<property name="url" value="${soap_server}" />
+		<property name="t" value="com.atguigu.server.ServerInf" />
+	</bean>
+	<bean id="AddressInf" class="com.atguigu.util.MyWsFactoryBean">
+		<property name="url" value="${soap_address}" />
+		<property name="t" value="com.atguigu.server.AddressInf" />
+	</bean>
+	<bean id="transactionManager"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource"></property>
+	</bean>
+	<!--name="*",所有方法，传输规则，主事务和子事务在同一事务里，回滚规则：exception回滚 -->
+	<tx:advice transaction-manager="transactionManager" id="tx-advice">
+		<tx:attributes>
+			<tx:method name="*" propagation="REQUIRED" rollback-for="java.lang.Exception" />
+		</tx:attributes>
+	</tx:advice>
+
+	<aop:config>
+		<aop:pointcut expression="execution(* com.atguigu.service.*.*(..))"
+			id="pointcut" />
+		<aop:advisor advice-ref="tx-advice" pointcut-ref="pointcut" />
+	</aop:config>
+
+	<!-- <bean id="targetConnectionFactory" class="org.apache.activemq.ActiveMQConnectionFactory">
+		<property name="brokerURL" value="tcp://localhost:61616" />
+	</bean>
+
+	<bean id="connectionFactory"
+		class="org.springframework.jms.connection.SingleConnectionFactory">
+		产生JMS Connection的ConnectionFactory
+		<property name="targetConnectionFactory" ref="targetConnectionFactory" />
+	</bean>
+
+	执行消息任务的模板
+	<bean id="jmsTemplate" class="org.springframework.jms.core.JmsTemplate">
+		<property name="connectionFactory" ref="connectionFactory" />
+	</bean>
+	<bean id="queueDestination" class="org.apache.activemq.command.ActiveMQQueue">
+		<constructor-arg value="loginQueue" />
+	</bean>
+	<bean id="topicDestination" class="org.apache.activemq.command.ActiveMQTopic">
+		<constructor-arg value="topic" />
+	</bean> -->
+
+
+
+	<!-- 基于注解的事务处理器配置 -->
+	<!-- <tx:annotation-driven transaction-manager="transactionManager"/> -->
+
+</beans>
